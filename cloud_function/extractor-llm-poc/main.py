@@ -186,6 +186,17 @@ def _vertex_extract_fields(raw_text: str) -> dict:
             "make": {"type": "string", "nullable": True},
             "model": {"type": "string", "nullable": True},
             "mileage": {"type": "integer", "nullable": True},
+            "body_type": {"type": "string", "nullable": True,
+                          "enum": ["sedan", "suv", "truck", "coupe", "convertible", "hatchback", "wagon", "minivan", "van", "other"]},
+            "drivetrain": {"type": "string", "nullable": True, "enum": ["fwd", "rwd", "awd", "4wd"]},
+            "transmission": {"type": "string", "nullable": True, "enum": ["automatic", "manual"]},
+            "fuel_type": {"type": "string", "nullable": True, "enum": ["gas", "diesel", "hybrid", "electric"]},
+            "title_status": {"type": "string", "nullable": True, "enum": ["clean", "rebuilt", "salvage", "lien", "missing", "parts only"]},
+            "condition": {"type": "string", "nullable": True, "enum": ["new", "like new", "excellent", "good", "fair", "salvage"]},
+            "seller_type": {"type": "string", "nullable": True, "enum": ["dealer", "private"]},
+            "num_owners": {"type": "integer", "nullable": True},
+            "accident_history": {"type": "boolean", "nullable": True},
+            "needs_repair": {"type": "boolean", "nullable": True},
         },
         "required": ["price", "year", "make", "model", "mileage"]
     }
@@ -196,7 +207,16 @@ def _vertex_extract_fields(raw_text: str) -> dict:
         "Return a strict JSON object that conforms to the provided schema. "
         "If a value is not present, use null. "
         "Rules: integers for price/year/mileage; price in USD; mileage in miles; "
-        "do not infer values not explicitly present; do not add extra keys."
+        "do not infer values not explicitly present; do not add extra keys. "
+        "body_type: you MAY infer it from a well-known make and model (a Honda CR-V is an suv). "
+        "drivetrain, transmission, fuel_type, title_status, condition: use the ad's own "
+        "attribute lines (like 'drive: 4wd' or 'title status: clean') or clear statements in the text; a CVT counts as automatic. "
+        "seller_type: 'dealer' if the ad shows dealership signs (dealer or company name, stock number, financing offers, "
+        "dealer fees, 'call our sales team'); 'private' if an individual owner is selling; otherwise null. "
+        "num_owners: only if the number of owners is stated ('one owner' -> 1). "
+        "accident_history: true if the ad mentions any accident or collision damage, false only if it says no accidents, otherwise null. "
+        "needs_repair: true if the seller mentions any mechanical, electrical or body problem, a warning light, or 'needs work'; "
+        "false only if it says no issues or runs perfect; otherwise null."
     )
 
     # FIX: Combine instruction and text into one prompt string (SDK compatibility)
@@ -346,6 +366,16 @@ def llm_extract_http(request: Request):
                     "make": parsed.get("make"),
                     "model": parsed.get("model"),
                     "mileage": parsed.get("mileage"),
+                    "body_type": parsed.get("body_type"),
+                    "drivetrain": parsed.get("drivetrain"),
+                    "transmission": parsed.get("transmission"),
+                    "fuel_type": parsed.get("fuel_type"),
+                    "title_status": parsed.get("title_status"),
+                    "condition": parsed.get("condition"),
+                    "seller_type": parsed.get("seller_type"),
+                    "num_owners": parsed.get("num_owners"),
+                    "accident_history": parsed.get("accident_history"),
+                    "needs_repair": parsed.get("needs_repair"),
                     "llm_provider": "vertex",
                     "llm_model": LLM_MODEL,
                     "llm_ts": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
